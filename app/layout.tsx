@@ -9,9 +9,9 @@ const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "The Finals SA Showdown - Tournament Brackets",
-  description: "Gerenciamento de torneio com brackets, times e classificação",
-  generator: "v0.app",
+  title: "The Finals SA Showdown",
+  description: "Exibição de chaves do torneio The Finals SA Showdown",
+  generator: "Dannebrock + v0.app",
   icons: {
     icon: [
       {
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
         media: "(prefers-color-scheme: dark)",
       },
       {
-        url: "/icon.svg",
+        url: "/icon_tfbr.png",
         type: "image/svg+xml",
       },
     ],
