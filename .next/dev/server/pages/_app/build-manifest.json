@@ -1,0 +1,23 @@
+{
+  "devFiles": [],
+  "ampDevFiles": [],
+  "polyfillFiles": [],
+  "lowPriorityFiles": [],
+  "rootMainFiles": [],
+  "pages": {
+    "/_app": [
+      "static/chunks/b2a2c_next_dist_compiled_67db440d._.js",
+      "static/chunks/b2a2c_next_dist_shared_lib_bef672be._.js",
+      "static/chunks/b2a2c_next_dist_client_aa255108._.js",
+      "static/chunks/b2a2c_next_dist_87516eee._.js",
+      "static/chunks/b2a2c_next_app_a708de0a.js",
+      "static/chunks/[next]_entry_page-loader_ts_f07cfe17._.js",
+      "static/chunks/b2a2c_react-dom_54595ce6._.js",
+      "static/chunks/b2a2c_58964c6e._.js",
+      "static/chunks/[root-of-the-server]__7031fc67._.js",
+      "static/chunks/tournament-bracke_pages__app_2da965e7._.js",
+      "static/chunks/turbopack-tournament-bracke_pages__app_627431c9._.js"
+    ]
+  },
+  "ampFirstPages": []
+}

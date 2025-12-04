@@ -1,0 +1,26 @@
+globalThis.__BUILD_MANIFEST = {
+  "pages": {
+    "/_app": []
+  },
+  "devFiles": [],
+  "polyfillFiles": [
+    "static/chunks/b2a2c_next_dist_build_polyfills_polyfill-nomodule.js"
+  ],
+  "lowPriorityFiles": [],
+  "rootMainFiles": [
+    "static/chunks/[turbopack]_browser_dev_hmr-client_hmr-client_ts_9f515a4f._.js",
+    "static/chunks/b2a2c_next_dist_compiled_react-dom_959aa1fc._.js",
+    "static/chunks/b2a2c_next_dist_compiled_react-server-dom-turbopack_05814fe1._.js",
+    "static/chunks/b2a2c_next_dist_compiled_next-devtools_index_ee1e6cb9.js",
+    "static/chunks/b2a2c_next_dist_compiled_c2371718._.js",
+    "static/chunks/b2a2c_next_dist_client_b7b87b27._.js",
+    "static/chunks/b2a2c_next_dist_ea878f1b._.js",
+    "static/chunks/b2a2c_@swc_helpers_cjs_03aab207._.js",
+    "static/chunks/tournament-bracke_a0ff3932._.js",
+    "static/chunks/turbopack-tournament-bracke_473327fb._.js"
+  ]
+};
+globalThis.__BUILD_MANIFEST.lowPriorityFiles = [
+"/static/" + process.env.__NEXT_BUILD_ID + "/_buildManifest.js",
+"/static/" + process.env.__NEXT_BUILD_ID + "/_ssgManifest.js"
+];
