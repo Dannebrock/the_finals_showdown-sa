@@ -3,9 +3,19 @@
 import { useTournament } from "@/components/tournament-context"
 import { GroupWithBo3 } from "./group-with-bo3"
 import { Bo3OnlyGroup } from "./bo3-only-group"
+import { Loader2 } from "lucide-react"
 
 export function Day1Bracket() {
-  const { state } = useTournament()
+  const { state, loading } = useTournament()
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <Loader2 className="w-12 h-12 text-amber-500 animate-spin" />
+        <p className="text-zinc-400 font-medium animate-pulse">Carregando chaves...</p>
+      </div>
+    )
+  }
 
   const winnersGroups = state.groups.filter((g) => g.day === 1 && g.phase === "WINNERS TOP 16")
   const eliminationGroups = state.groups.filter((g) => g.day === 1 && g.phase === "ELIMINATION ROUND")
