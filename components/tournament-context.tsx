@@ -41,6 +41,69 @@ const PROGRESSION_MAP: Record<string, ProgressionRule> = {
   G2: { upperWinner: "G9", upperLoser: "G5", lowerWinner: "G5" },
   G3: { upperWinner: "G10", upperLoser: "G6", lowerWinner: "G6" },
   G4: { upperWinner: "G10", upperLoser: "G6", lowerWinner: "G6" },
+  // --- Fase 2: Elimination Round (Sábado) ---
+  // Tanto G5 quanto G6 mandam seus times restantes para o G7
+  G5: { 
+    upperWinner: "G9", // Vai para Domingo
+    upperLoser: "G7",   // Cai para G7
+    lowerWinner: "G7"   // Cai para G7
+  },
+  
+  G6: { 
+    upperWinner: "G10", // Vai para Domingo
+    upperLoser: "G7",   // Cai para G7 (Junta com os do G5)
+    lowerWinner: "G7"   // Cai para G7 (Junta com os do G5)
+  },
+
+  // --- Fase 3: Last Chance (Sábado) ---
+  // G7 decide uma vaga direta e manda os outros para o G8 (Mata-mata final)
+  G7: {
+    upperWinner: "G9", // Vencedor da Upper (1º vs 2º) classifica para Domingo
+    upperLoser: "G8",   // Perdedor da Upper cai para o G8
+    lowerWinner: "G8"   // Vencedor da Lower cai para o G8
+  },
+
+  // G8 é apenas um Bo3 final (decide a última vaga)
+  // Como ele é um "Bo3OnlyGroup", consideramos apenas o vencedor
+  G8: {
+    upperWinner: "G10", // O vencedor do G8 pega a última vaga de Domingo
+    upperLoser: "ELIMINATED", // Acabou
+    lowerWinner: "ELIMINATED" // Não existe lower em G8 (é só 1 jogo), mas mantemos pra não quebrar
+  },
+  // --- Fase 4: Top 8 (Quarter-Finals) ---
+  // Recebem os classificados de Sábado.
+  // Objetivo: Enviar vencedores para a Final (G13) e perdedores para a Repescagem (G11)
+  
+  G9: {
+    upperWinner: "G13", // 1º Classificado para a Final
+    upperLoser: "G11",  // Cai para Elimination Quarter-Final
+    lowerWinner: "G11"  // Cai para Elimination Quarter-Final
+  },
+
+  G10: {
+    upperWinner: "G13", // 2º Classificado para a Final
+    upperLoser: "G11",  // Cai para Elimination Quarter-Final
+    lowerWinner: "G11"  // Cai para Elimination Quarter-Final
+  },
+
+  // --- Fase 5: Elimination Quarter-Final (G11) ---
+  // Recebe os 4 times que caíram do G9/G10.
+  // O Vencedor da Upper vai pra Final. Os outros brigam na Semi (G12).
+  
+  G11: {
+    upperWinner: "G13", // 3º Classificado para a Final (Vencedor da Upper do G11)
+    upperLoser: "G12",  // Cai para Elimination Semi-Final (Última chance)
+    lowerWinner: "G12"  // Avança para Elimination Semi-Final (Última chance)
+  },
+
+  // --- Fase 6: Elimination Semi-Final (G12) ---
+  // É um Bo3 único entre os sobreviventes do G11.
+  
+  G12: { // Bo3OnlyGroup
+    upperWinner: "G13", // 4º e Último Classificado para a Final
+    upperLoser: "ELIMINATED",
+    lowerWinner: "ELIMINATED"
+  }
 }
 
 export function TournamentProvider({ children }: { children: React.ReactNode }) {
