@@ -44,12 +44,12 @@ export interface FinalMatchTeam {
   points: number
 }
 
-export interface FinalMatch {
-  id: string
-  winnerId: string | null
-  completed: boolean
-  teams: FinalMatchTeam[]
-}
+// export interface FinalMatch {
+//   id: string
+//   winnerId: string | null
+//   completed: boolean
+//   teams: FinalMatchTeam[]
+// }
 
 export interface TournamentState {
   teams: Team[]
@@ -57,6 +57,23 @@ export interface TournamentState {
   bo3Matches: Bo3Match[]
   finalMatch: FinalMatch | null
   currentDay: number
+}
+
+export interface FinalRound {
+  id: string
+  finalId: string
+  roundNumber: number
+  stage: 'cashout' | 'bo3'
+  status: 'active' | 'completed'
+  results: any // JSON com os dados do round
+}
+
+export interface FinalMatch {
+  id: string
+  completed: boolean
+  winnerId?: string
+  teams: { teamId: string; points: number }[]
+  rounds: FinalRound[] // Novo array de rounds
 }
 
 // --- CORES DO TEMA (Baseado na Imagem Amarela) ---

@@ -3,225 +3,304 @@
 import Image from "next/image"
 import { useTournament } from "@/components/tournament-context"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Trophy, Plus, Minus, Crown, Star } from "lucide-react"
+import { Trophy, Crown, Star, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState } from "react"
+import type { Team, FinalMatch } from "@/lib/types"
 
-export function FinalManagement() {
-  const { state, initFinalMatch, updateFinalPoints } = useTournament()
-  const { teams, finalMatch } = state
-
+// --- COMPONENTE 1: SETUP DA FINAL (Seleção de Times) ---
+function SetupFinalComponent() {
+  const { state, initFinalMatch } = useTournament()
+  const { teams } = state
   const [selectedTeams, setSelectedTeams] = useState<string[]>([])
 
-  const getTeam = (teamId: string) => teams.find((t) => t.id === teamId)
-
-  const handleAddTeamToFinal = (teamId: string) => {
+  const handleAddTeam = (teamId: string) => {
     if (selectedTeams.length < 4 && !selectedTeams.includes(teamId)) {
       setSelectedTeams([...selectedTeams, teamId])
     }
   }
 
-  const handleRemoveTeamFromSelection = (teamId: string) => {
+  const handleRemoveTeam = (teamId: string) => {
     setSelectedTeams(selectedTeams.filter((id) => id !== teamId))
-  }
-
-  const handleStartFinal = () => {
-    if (selectedTeams.length >= 2) {
-      initFinalMatch(selectedTeams)
-    }
-  }
-
-  const handleAddPoint = (teamId: string) => {
-    if (!finalMatch) return
-    const currentTeam = finalMatch.teams.find((t) => t.teamId === teamId)
-    if (currentTeam && currentTeam.points < 5) {
-      updateFinalPoints(teamId, currentTeam.points + 1)
-    }
-  }
-
-  const handleRemovePoint = (teamId: string) => {
-    if (!finalMatch) return
-    const currentTeam = finalMatch.teams.find((t) => t.teamId === teamId)
-    if (currentTeam && currentTeam.points > 0) {
-      updateFinalPoints(teamId, currentTeam.points - 1)
-    }
   }
 
   const availableTeams = teams.filter((t) => !selectedTeams.includes(t.id))
 
   return (
+    <div className="bg-zinc-900 rounded-lg border border-zinc-800 p-6">
+      <h3 className="font-bold text-white mb-4 flex items-center gap-2">
+        <Star className="w-5 h-5 text-amber-500" />
+        Configurar Final
+      </h3>
+
+      <div className="space-y-4">
+        {/* Dropdown de Seleção */}
+        <Select onValueChange={handleAddTeam} disabled={selectedTeams.length >= 4}>
+          <SelectTrigger className="w-full bg-zinc-800 border-zinc-700 text-white">
+            <SelectValue placeholder="Adicionar time à final..." />
+          </SelectTrigger>
+          <SelectContent className="bg-zinc-800 border-zinc-700">
+            {availableTeams.map((team) => (
+              <SelectItem key={team.id} value={team.id} className="text-white hover:bg-zinc-700 cursor-pointer">
+                {team.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Times Selecionados */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {selectedTeams.map((teamId) => {
+            const team = teams.find((t) => t.id === teamId)
+            if (!team) return null
+            return (
+              <div key={teamId} className="bg-zinc-800 rounded-lg p-3 text-center relative group border border-zinc-700">
+                <button
+                  onClick={() => handleRemoveTeam(teamId)}
+                  className="absolute top-1 right-1 text-zinc-500 hover:text-red-500 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+                <div className="relative w-12 h-12 mx-auto rounded-full overflow-hidden bg-zinc-700 mb-2">
+                  {team.logo ? (
+                    <Image src={team.logo} alt={team.name} fill className="object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center font-bold text-zinc-500">
+                      {team.name.charAt(0)}
+                    </div>
+                  )}
+                </div>
+                <p className="text-white text-sm font-medium truncate">{team.name}</p>
+              </div>
+            )
+          })}
+        </div>
+
+        <Button
+          onClick={() => initFinalMatch(selectedTeams)}
+          disabled={selectedTeams.length < 2}
+          className="w-full bg-amber-500 hover:bg-amber-600 text-black font-bold"
+        >
+          <Trophy className="w-4 h-4 mr-2" />
+          Iniciar Final ({selectedTeams.length}/4 times)
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+// --- COMPONENTE 2: PLACAR GERAL (Visualização dos Pontos) ---
+function Scoreboard({ teams: finalTeams, allTeams }: { teams: FinalMatch['teams'], allTeams: Team[] }) {
+  // Ordena por pontos (quem tem mais aparece primeiro ou destaque)
+  const sortedTeams = [...finalTeams].sort((a, b) => b.points - a.points)
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      {sortedTeams.map((ft) => {
+        const team = allTeams.find((t) => t.id === ft.teamId)
+        const isMatchPoint = ft.points === 4
+        
+        return (
+          <div key={ft.teamId} className={cn(
+            "bg-zinc-900 border rounded-lg p-4 text-center relative transition-all",
+            isMatchPoint ? "border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)]" : "border-zinc-800"
+          )}>
+             {isMatchPoint && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-500 text-black text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse">
+                  MATCH POINT
+                </div>
+             )}
+             
+            <div className="relative w-16 h-16 mx-auto rounded-full overflow-hidden bg-zinc-800 mb-2 border-2 border-zinc-700">
+              {team?.logo ? (
+                <Image src={team.logo} alt={team.name} fill className="object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-xl text-zinc-500 font-bold">
+                  {team?.name.charAt(0)}
+                </div>
+              )}
+            </div>
+            
+            <h4 className="text-white font-bold truncate mb-1">{team?.name}</h4>
+            
+            {/* Pontuação Numérica */}
+            <div className="text-4xl font-black text-white mb-2">{ft.points}</div>
+            
+            {/* Indicadores Visuais (Bolinhas) */}
+            <div className="flex justify-center gap-1.5">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <div 
+                  key={i} 
+                  className={cn(
+                    "w-2.5 h-2.5 rounded-full transition-colors",
+                    i < ft.points ? "bg-amber-500" : "bg-zinc-800"
+                  )} 
+                />
+              ))}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// --- COMPONENTE PRINCIPAL ---
+export function FinalManagement() {
+  const { state, startNewRound, submitCashoutResults, submitBo3Results } = useTournament()
+  const { teams, finalMatch } = state
+
+  // State local para inputs do cashout
+  const [cashoutInputs, setCashoutInputs] = useState<Record<string, number>>({})
+
+  // Se não existe final criada, mostra o Setup
+  if (!finalMatch) return <SetupFinalComponent />
+
+  // Encontra o round ativo
+  const activeRound = finalMatch.rounds?.find(r => r.status === 'active')
+
+  return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-amber-500 to-amber-600 rounded-lg p-6 text-center">
+      <div className="bg-gradient-to-r from-amber-500 to-amber-600 rounded-lg p-6 text-center shadow-lg">
         <Trophy className="w-12 h-12 text-black mx-auto mb-2" />
         <h2 className="text-2xl font-black text-black">THE FINAL</h2>
-        <p className="text-black/70 font-medium">Primeiro a atingir 5 pontos vence!</p>
+        <p className="text-black/80 font-bold">Primeiro a atingir 5 pontos vence!</p>
       </div>
 
-      {!finalMatch ? (
-        // Setup Final
-        <div className="bg-zinc-900 rounded-lg border border-zinc-800 p-6">
-          <h3 className="font-bold text-white mb-4 flex items-center gap-2">
-            <Star className="w-5 h-5 text-amber-500" />
-            Configurar Final
-          </h3>
+      {/* Placar Global */}
+      <Scoreboard teams={finalMatch.teams} allTeams={teams} />
 
-          {/* Team Selection */}
-          <div className="space-y-4">
-            <Select onValueChange={handleAddTeamToFinal} disabled={selectedTeams.length >= 4}>
-              <SelectTrigger className="w-full bg-zinc-800 border-zinc-700 text-white">
-                <SelectValue placeholder="Adicionar time à final..." />
-              </SelectTrigger>
-              <SelectContent className="bg-zinc-800 border-zinc-700">
-                {availableTeams.map((team) => (
-                  <SelectItem key={team.id} value={team.id} className="text-white hover:bg-zinc-700">
-                    {team.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+      {/* Área de Gerenciamento do Round Atual */}
+      <div className="bg-zinc-900 p-6 rounded-lg border border-amber-500/30 relative overflow-hidden">
+        {/* Faixa decorativa */}
+        <div className="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
 
-            {/* Selected Teams */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {selectedTeams.map((teamId) => {
-                const team = getTeam(teamId)
-                if (!team) return null
-                return (
-                  <div key={teamId} className="bg-zinc-800 rounded-lg p-3 text-center relative">
-                    <button
-                      onClick={() => handleRemoveTeamFromSelection(teamId)}
-                      className="absolute top-1 right-1 text-zinc-400 hover:text-red-500 text-xs"
-                    >
-                      ✕
-                    </button>
-                    <div className="relative w-12 h-12 mx-auto rounded-full overflow-hidden bg-zinc-700 mb-2">
-                      {team.logo ? (
-                        <Image src={team.logo || "/placeholder.svg"} alt={team.name} fill className="object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-lg font-bold text-zinc-400">
-                          {team.name.charAt(0)}
-                        </div>
-                      )}
+        <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+          <span className="text-amber-500">▶</span>
+          Status Atual: 
+          <span className="ml-2 uppercase tracking-wider text-sm bg-zinc-800 px-3 py-1 rounded text-zinc-300">
+            {activeRound 
+              ? (activeRound.stage === 'cashout' ? 'Disputa de Cashout' : 'Duelo MD3 (Final Round)') 
+              : 'Aguardando Início'}
+          </span>
+        </h3>
+
+        {/* CENÁRIO 1: Nenhum round ativo (Início ou Erro) */}
+        {!activeRound && !finalMatch.completed && (
+           <div className="text-center py-8">
+             <p className="text-zinc-400 mb-4">Nenhum round ativo. Inicie o ciclo de cashout.</p>
+             <Button onClick={() => startNewRound(finalMatch.id)} className="bg-green-600 hover:bg-green-700 text-white font-bold px-8">
+                Iniciar Primeiro Ciclo (Cashout)
+             </Button>
+           </div>
+        )}
+
+        {/* CENÁRIO 2: Round de Cashout */}
+        {activeRound?.stage === 'cashout' && (
+           <div className="space-y-4 max-w-xl mx-auto">
+              <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded mb-6 text-sm text-blue-200">
+                 ℹ️ Insira o valor total ganho por cada time nesta rodada de cashout. Os 2 maiores valores avançarão para a MD3.
+              </div>
+              
+              {finalMatch.teams.map(ft => {
+                 const team = teams.find(t => t.id === ft.teamId)
+                 return (
+                    <div key={ft.teamId} className="flex items-center gap-4">
+                       <div className="w-8 h-8 relative rounded-full overflow-hidden bg-zinc-800 shrink-0">
+                          {team?.logo && <Image src={team.logo} alt="" fill className="object-cover" />}
+                       </div>
+                       <span className="text-white font-bold flex-1 truncate">{team?.name}</span>
+                       <div className="relative w-40">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500">$</span>
+                          <Input 
+                             type="number" 
+                             className="pl-6 bg-zinc-950 border-zinc-700 text-white font-mono"
+                             placeholder="0"
+                             onChange={(e) => setCashoutInputs({...cashoutInputs, [ft.teamId]: Number(e.target.value)})}
+                          />
+                       </div>
                     </div>
-                    <p className="text-white text-sm font-medium truncate">{team.name}</p>
-                  </div>
-                )
+                 )
               })}
-            </div>
+              
+              <Button 
+                 onClick={() => submitCashoutResults(activeRound.id, cashoutInputs)}
+                 className="w-full bg-amber-500 text-black hover:bg-amber-600 font-bold mt-6 h-12 text-lg"
+              >
+                 Confirmar Resultados & Definir Top 2
+              </Button>
+           </div>
+        )}
 
-            <Button
-              onClick={handleStartFinal}
-              disabled={selectedTeams.length < 2}
-              className="w-full bg-amber-500 hover:bg-amber-600 text-black font-bold"
-            >
-              <Trophy className="w-4 h-4 mr-2" />
-              Iniciar Final ({selectedTeams.length}/4 times)
-            </Button>
-          </div>
-        </div>
-      ) : (
-        // Final Match
-        <div className="bg-zinc-900 rounded-lg border border-amber-500/50 overflow-hidden">
-          <div className="bg-zinc-800 px-4 py-3 flex items-center justify-between">
-            <span className="text-white font-bold">G13 - Final</span>
-            {finalMatch.completed && (
-              <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">Finalizada!</span>
-            )}
-          </div>
-
-          <div className="p-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {finalMatch.teams.map((ft) => {
-                const team = getTeam(ft.teamId)
-                const isWinner = finalMatch.winnerId === ft.teamId
-
-                return (
-                  <div
-                    key={ft.teamId}
-                    className={cn(
-                      "text-center p-4 rounded-lg transition-all",
-                      isWinner && "bg-amber-500/20 ring-2 ring-amber-500",
-                    )}
-                  >
-                    <div className="relative w-16 h-16 mx-auto rounded-full overflow-hidden bg-zinc-700 mb-3">
-                      {team?.logo ? (
-                        <Image
-                          src={team.logo || "/placeholder.svg"}
-                          alt={team?.name || ""}
-                          fill
-                          className="object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-2xl font-bold text-zinc-400">
-                          {team?.name?.charAt(0)}
-                        </div>
-                      )}
+        {/* CENÁRIO 3: Round de MD3 */}
+        {activeRound?.stage === 'bo3' && activeRound.results && (
+           <div className="text-center">
+              <p className="text-zinc-400 mb-8">
+                 Os dois melhores do cashout se enfrentam. Quem venceu a MD3?
+              </p>
+              
+              <div className="flex items-center justify-center gap-4 md:gap-12">
+                 {/* Time 1 */}
+                 <Button 
+                    onClick={() => submitBo3Results(activeRound.id, activeRound.results.team1Id)}
+                    className="h-auto py-6 px-8 flex flex-col gap-3 bg-zinc-800 hover:bg-blue-900/50 border border-zinc-700 hover:border-blue-500 transition-all group"
+                 >
+                    <div className="w-16 h-16 relative rounded-full overflow-hidden bg-black mb-1 group-hover:scale-110 transition-transform">
+                       {(() => {
+                          const t = teams.find(t => t.id === activeRound.results.team1Id)
+                          return t?.logo ? <Image src={t.logo} alt="" fill className="object-cover" /> : null
+                       })()}
                     </div>
-
-                    <p className="font-bold text-white mb-2">{team?.name}</p>
-
-                    {/* Points */}
-                    <div className="text-4xl font-black text-amber-500 mb-3">{ft.points}</div>
-
-                    {/* Point Indicators */}
-                    <div className="flex justify-center gap-1 mb-3">
-                      {[0, 1, 2, 3, 4].map((i) => (
-                        <div
-                          key={i}
-                          className={cn("w-3 h-3 rounded-full", i < ft.points ? "bg-amber-500" : "bg-zinc-700")}
-                        />
-                      ))}
+                    <div className="text-left">
+                       <div className="text-xs text-zinc-500 uppercase font-bold">Vencedor</div>
+                       <div className="text-xl font-black text-white">
+                          {teams.find(t => t.id === activeRound.results.team1Id)?.name}
+                       </div>
                     </div>
+                 </Button>
 
-                    {/* Controls */}
-                    {!finalMatch.completed && (
-                      <div className="flex items-center justify-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-8 w-8 p-0 border-zinc-700 bg-transparent"
-                          onClick={() => handleRemovePoint(ft.teamId)}
-                          disabled={ft.points === 0}
-                        >
-                          <Minus className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          className="bg-amber-500 hover:bg-amber-600 text-black"
-                          onClick={() => handleAddPoint(ft.teamId)}
-                          disabled={ft.points >= 5}
-                        >
-                          <Plus className="w-4 h-4 mr-1" />
-                          Ponto
-                        </Button>
-                      </div>
-                    )}
+                 <div className="flex flex-col items-center">
+                    <span className="text-3xl font-black text-zinc-700 italic">VS</span>
+                 </div>
 
-                    {isWinner && (
-                      <div className="flex items-center justify-center gap-1 mt-3 text-amber-400">
-                        <Crown className="w-5 h-5" />
-                        <span className="font-bold">CAMPEÃO!</span>
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        </div>
-      )}
+                 {/* Time 2 */}
+                 <Button 
+                    onClick={() => submitBo3Results(activeRound.id, activeRound.results.team2Id)}
+                    className="h-auto py-6 px-8 flex flex-col gap-3 bg-zinc-800 hover:bg-red-900/50 border border-zinc-700 hover:border-red-500 transition-all group"
+                 >
+                    <div className="w-16 h-16 relative rounded-full overflow-hidden bg-black mb-1 group-hover:scale-110 transition-transform">
+                       {(() => {
+                          const t = teams.find(t => t.id === activeRound.results.team2Id)
+                          return t?.logo ? <Image src={t.logo} alt="" fill className="object-cover" /> : null
+                       })()}
+                    </div>
+                    <div className="text-right">
+                       <div className="text-xs text-zinc-500 uppercase font-bold">Vencedor</div>
+                       <div className="text-xl font-black text-white">
+                          {teams.find(t => t.id === activeRound.results.team2Id)?.name}
+                       </div>
+                    </div>
+                 </Button>
+              </div>
 
-      {/* Instructions */}
-      <div className="bg-zinc-900 rounded-lg border border-zinc-800 p-4">
-        <h3 className="font-bold text-white mb-2">Como funciona a Final:</h3>
-        <ul className="text-sm text-zinc-400 space-y-1">
-          <li>• O formato da final é diferente: primeiro a 5 pontos vence</li>
-          <li>• Cada vitória em uma partida de Cashout vale 1 ponto</li>
-          <li>• Após cada ciclo de Cashout, 1º e 2º jogam Bo3</li>
-          <li>• Vencedor do Bo3 ganha +1 ponto acumulado</li>
-          <li>• O processo continua até alguém atingir 5 pontos</li>
-        </ul>
+              <p className="text-xs text-zinc-500 mt-8 max-w-md mx-auto">
+                 *Ao confirmar o vencedor, ele receberá <span className="text-amber-500 font-bold">+1 Ponto</span>. Se ninguém atingir 5 pontos, um novo ciclo de Cashout será iniciado automaticamente.
+              </p>
+           </div>
+        )}
+        
+        {/* CENÁRIO 4: Fim de jogo */}
+        {finalMatch.completed && (
+           <div className="text-center py-10 animate-in fade-in zoom-in duration-500">
+              <Crown className="w-20 h-20 text-amber-500 mx-auto mb-4 animate-bounce" />
+              <h3 className="text-3xl font-black text-white mb-2">TEMOS UM CAMPEÃO!</h3>
+              <p className="text-xl text-amber-500 font-bold">
+                 {teams.find(t => t.id === finalMatch.winnerId)?.name}
+              </p>
+           </div>
+        )}
       </div>
     </div>
   )

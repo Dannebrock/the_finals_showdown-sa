@@ -19,8 +19,8 @@ export function Day2Bracket() {
     }
 
   const top8Groups = state.groups.filter((g) => g.day === 2 && g.phase === "TOP 8")
-  const quarterFinalGroup = state.groups.find((g) => g.id === "g11")
-  const semiFinalGroup = state.groups.find((g) => g.id === "g12")
+  const quarterFinalGroup = state.groups.find((g) => g.id === "G11")
+  const semiFinalGroup = state.groups.find((g) => g.id === "G12")
   const finalGroup = state.groups.find((g) => g.id === "g13")
 
   return (
