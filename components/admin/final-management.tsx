@@ -5,7 +5,7 @@ import { useTournament } from "@/components/tournament-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Trophy, Crown, Star, X } from "lucide-react"
+import { Trophy, Crown, Star, X, Plus, Minus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState } from "react"
 import type { Team, FinalMatch } from "@/lib/types"
@@ -93,14 +93,14 @@ function SetupFinalComponent() {
 
 // --- COMPONENTE 2: PLACAR GERAL (Visualização dos Pontos) ---
 function Scoreboard({ teams: finalTeams, allTeams }: { teams: FinalMatch['teams'], allTeams: Team[] }) {
-  // Ordena por pontos (quem tem mais aparece primeiro ou destaque)
+  // Ordena por pontos
   const sortedTeams = [...finalTeams].sort((a, b) => b.points - a.points)
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
       {sortedTeams.map((ft) => {
         const team = allTeams.find((t) => t.id === ft.teamId)
-        const isMatchPoint = ft.points === 4
+        const isMatchPoint = ft.points >= 4
         
         return (
           <div key={ft.teamId} className={cn(
@@ -152,8 +152,9 @@ export function FinalManagement() {
   const { state, startNewRound, submitCashoutResults, submitBo3Results } = useTournament()
   const { teams, finalMatch } = state
 
-  // State local para inputs do cashout
+  // State local para inputs
   const [cashoutInputs, setCashoutInputs] = useState<Record<string, number>>({})
+  const [bo3Score, setBo3Score] = useState<{ t1: number, t2: number }>({ t1: 0, t2: 0 })
 
   // Se não existe final criada, mostra o Setup
   if (!finalMatch) return <SetupFinalComponent />
@@ -183,16 +184,16 @@ export function FinalManagement() {
           <span className="ml-2 uppercase tracking-wider text-sm bg-zinc-800 px-3 py-1 rounded text-zinc-300">
             {activeRound 
               ? (activeRound.stage === 'cashout' ? 'Disputa de Cashout' : 'Duelo MD3 (Final Round)') 
-              : 'Aguardando Início'}
+              : (finalMatch.completed ? 'Torneio Finalizado' : 'Aguardando Início')}
           </span>
         </h3>
 
-        {/* CENÁRIO 1: Nenhum round ativo (Início ou Erro) */}
+        {/* CENÁRIO 1: Nenhum round ativo (Início) */}
         {!activeRound && !finalMatch.completed && (
            <div className="text-center py-8">
              <p className="text-zinc-400 mb-4">Nenhum round ativo. Inicie o ciclo de cashout.</p>
              <Button onClick={() => startNewRound(finalMatch.id)} className="bg-green-600 hover:bg-green-700 text-white font-bold px-8">
-                Iniciar Primeiro Ciclo (Cashout)
+               Iniciar Primeiro Ciclo (Cashout)
              </Button>
            </div>
         )}
@@ -201,7 +202,7 @@ export function FinalManagement() {
         {activeRound?.stage === 'cashout' && (
            <div className="space-y-4 max-w-xl mx-auto">
               <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded mb-6 text-sm text-blue-200">
-                 ℹ️ Insira o valor total ganho por cada time nesta rodada de cashout. Os 2 maiores valores avançarão para a MD3.
+                 ℹ️ Insira o valor total ganho por cada time nesta rodada. Os 2 maiores avançarão para a MD3.
               </div>
               
               {finalMatch.teams.map(ft => {
@@ -229,74 +230,74 @@ export function FinalManagement() {
                  onClick={() => submitCashoutResults(activeRound.id, cashoutInputs)}
                  className="w-full bg-amber-500 text-black hover:bg-amber-600 font-bold mt-6 h-12 text-lg"
               >
-                 Confirmar Resultados & Definir Top 2
+                 Confirmar Cashout & Definir Duelo
               </Button>
            </div>
         )}
 
-        {/* CENÁRIO 3: Round de MD3 */}
+        {/* CENÁRIO 3: Round de MD3 (Atualizado para Score) */}
         {activeRound?.stage === 'bo3' && activeRound.results && (
            <div className="text-center">
               <p className="text-zinc-400 mb-8">
-                 Os dois melhores do cashout se enfrentam. Quem venceu a MD3?
+                 Insira o placar final da MD3. <br/>
+                 <span className="text-amber-500 text-sm font-bold">Cada vitória conta como +1 Ponto na tabela geral.</span>
               </p>
               
-              <div className="flex items-center justify-center gap-4 md:gap-12">
+              <div className="flex items-center justify-center gap-8 md:gap-16">
                  {/* Time 1 */}
-                 <Button 
-                    onClick={() => submitBo3Results(activeRound.id, activeRound.results.team1Id)}
-                    className="h-auto py-6 px-8 flex flex-col gap-3 bg-zinc-800 hover:bg-blue-900/50 border border-zinc-700 hover:border-blue-500 transition-all group"
-                 >
-                    <div className="w-16 h-16 relative rounded-full overflow-hidden bg-black mb-1 group-hover:scale-110 transition-transform">
+                 <div className="flex flex-col items-center gap-4">
+                    <div className="w-20 h-20 relative rounded-full overflow-hidden bg-black border-2 border-zinc-700">
                        {(() => {
                           const t = teams.find(t => t.id === activeRound.results.team1Id)
                           return t?.logo ? <Image src={t.logo} alt="" fill className="object-cover" /> : null
                        })()}
                     </div>
-                    <div className="text-left">
-                       <div className="text-xs text-zinc-500 uppercase font-bold">Vencedor</div>
-                       <div className="text-xl font-black text-white">
-                          {teams.find(t => t.id === activeRound.results.team1Id)?.name}
-                       </div>
+                    <div className="font-bold text-xl text-white">{teams.find(t => t.id === activeRound.results.team1Id)?.name}</div>
+                    
+                    <div className="flex items-center gap-3 bg-zinc-800 rounded-lg p-2 border border-zinc-700">
+                       <Button size="icon" variant="ghost" onClick={() => setBo3Score(s => ({...s, t1: Math.max(0, s.t1 - 1)}))}><Minus className="w-4 h-4"/></Button>
+                       <span className="text-3xl font-black w-8 text-center text-green-500">{bo3Score.t1}</span>
+                       <Button size="icon" className="bg-green-600 hover:bg-green-700" onClick={() => setBo3Score(s => ({...s, t1: Math.min(2, s.t1 + 1)}))}><Plus className="w-4 h-4"/></Button>
                     </div>
-                 </Button>
-
-                 <div className="flex flex-col items-center">
-                    <span className="text-3xl font-black text-zinc-700 italic">VS</span>
                  </div>
 
+                 <div className="text-4xl font-black text-zinc-600 italic">VS</div>
+
                  {/* Time 2 */}
-                 <Button 
-                    onClick={() => submitBo3Results(activeRound.id, activeRound.results.team2Id)}
-                    className="h-auto py-6 px-8 flex flex-col gap-3 bg-zinc-800 hover:bg-red-900/50 border border-zinc-700 hover:border-red-500 transition-all group"
-                 >
-                    <div className="w-16 h-16 relative rounded-full overflow-hidden bg-black mb-1 group-hover:scale-110 transition-transform">
+                 <div className="flex flex-col items-center gap-4">
+                    <div className="w-20 h-20 relative rounded-full overflow-hidden bg-black border-2 border-zinc-700">
                        {(() => {
                           const t = teams.find(t => t.id === activeRound.results.team2Id)
                           return t?.logo ? <Image src={t.logo} alt="" fill className="object-cover" /> : null
                        })()}
                     </div>
-                    <div className="text-right">
-                       <div className="text-xs text-zinc-500 uppercase font-bold">Vencedor</div>
-                       <div className="text-xl font-black text-white">
-                          {teams.find(t => t.id === activeRound.results.team2Id)?.name}
-                       </div>
+                    <div className="font-bold text-xl text-white">{teams.find(t => t.id === activeRound.results.team2Id)?.name}</div>
+                    
+                    <div className="flex items-center gap-3 bg-zinc-800 rounded-lg p-2 border border-zinc-700">
+                       <Button size="icon" variant="ghost" onClick={() => setBo3Score(s => ({...s, t2: Math.max(0, s.t2 - 1)}))}><Minus className="w-4 h-4"/></Button>
+                       <span className="text-3xl font-black w-8 text-center text-green-500">{bo3Score.t2}</span>
+                       <Button size="icon" className="bg-green-600 hover:bg-green-700" onClick={() => setBo3Score(s => ({...s, t2: Math.min(2, s.t2 + 1)}))}><Plus className="w-4 h-4"/></Button>
                     </div>
-                 </Button>
+                 </div>
               </div>
 
-              <p className="text-xs text-zinc-500 mt-8 max-w-md mx-auto">
-                 *Ao confirmar o vencedor, ele receberá <span className="text-amber-500 font-bold">+1 Ponto</span>. Se ninguém atingir 5 pontos, um novo ciclo de Cashout será iniciado automaticamente.
-              </p>
+              <Button 
+                 onClick={() => submitBo3Results(activeRound.id, activeRound.results.team1Id, activeRound.results.team2Id, bo3Score.t1, bo3Score.t2)}
+                 // Bloqueia se o placar for inválido (md3 precisa que alguém ganhe 2 para acabar, ou pelo menos some algum ponto válido)
+                 disabled={bo3Score.t1 === 0 && bo3Score.t2 === 0} 
+                 className="mt-12 bg-amber-500 text-black hover:bg-amber-600 font-bold px-12 py-6 text-xl rounded-full shadow-[0_0_20px_rgba(245,158,11,0.4)]"
+              >
+                 Confirmar Pontuação
+              </Button>
            </div>
         )}
         
         {/* CENÁRIO 4: Fim de jogo */}
         {finalMatch.completed && (
            <div className="text-center py-10 animate-in fade-in zoom-in duration-500">
-              <Crown className="w-20 h-20 text-amber-500 mx-auto mb-4 animate-bounce" />
-              <h3 className="text-3xl font-black text-white mb-2">TEMOS UM CAMPEÃO!</h3>
-              <p className="text-xl text-amber-500 font-bold">
+              <Crown className="w-24 h-24 text-amber-500 mx-auto mb-4 animate-bounce" />
+              <h3 className="text-4xl font-black text-white mb-2">TEMOS UM CAMPEÃO!</h3>
+              <p className="text-2xl text-amber-500 font-bold">
                  {teams.find(t => t.id === finalMatch.winnerId)?.name}
               </p>
            </div>
