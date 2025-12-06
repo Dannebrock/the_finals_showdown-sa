@@ -1,10 +1,11 @@
 "use client"
 
-import Image from "next/image" // Importe o Image do Next.js
+import Image from "next/image"
 import { useTournament } from "@/components/tournament-context"
 import { GroupWithBo3 } from "./group-with-bo3"
+import { Bo3OnlyGroup } from "./bo3-only-group" // <--- 1. IMPORTADO AQUI
 import { TeamSlot } from "./team-slot"
-import { Trophy, Loader2, Crown } from "lucide-react" // Adicione Crown
+import { Trophy, Loader2, Crown } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 // Cores do tema (Final)
@@ -14,7 +15,7 @@ const themeColors = {
 }
 
 export function Day2Bracket() {
-  const { state, loading, getTeamById } = useTournament() // Adicione getTeamById
+  const { state, loading, getTeamById } = useTournament()
 
   if (loading) {
     return (
@@ -25,7 +26,6 @@ export function Day2Bracket() {
     )
   }
 
-  // --- CORREÇÃO DE IDs (Maiúsculo/Minúsculo) ---
   const top8Groups = state.groups.filter((g) => g.day === 2 && g.phase === "TOP 8")
   const quarterFinalGroup = state.groups.find((g) => g.id === "G11" || g.id === "g11")
   const semiFinalGroup = state.groups.find((g) => g.id === "G12" || g.id === "g12")
@@ -55,7 +55,7 @@ export function Day2Bracket() {
         </div>
       </section>
 
-      {/* ELIMINATION QUARTER-FINAL */}
+      {/* ELIMINATION QUARTER-FINAL (G11) */}
       {quarterFinalGroup && (
         <section>
           <h2 className="text-lg md:text-2xl font-black text-white mb-4 md:mb-6 border-l-4 border-red-600 pl-3 md:pl-4">
@@ -67,14 +67,15 @@ export function Day2Bracket() {
         </section>
       )}
 
-      {/* ELIMINATION SEMI-FINAL */}
+      {/* ELIMINATION SEMI-FINAL (G12) - ALTERADO AQUI */}
       {semiFinalGroup && (
         <section>
           <h2 className="text-lg md:text-2xl font-black text-white mb-4 md:mb-6 border-l-4 border-red-600 pl-3 md:pl-4">
             ELIMINATION SEMI-FINAL
           </h2>
           <div className="overflow-x-auto pb-2">
-            <GroupWithBo3 group={semiFinalGroup} />
+            {/* 2. ALTERADO DE GroupWithBo3 PARA Bo3OnlyGroup */}
+            <Bo3OnlyGroup group={semiFinalGroup} />
           </div>
         </section>
       )}
@@ -166,7 +167,7 @@ export function Day2Bracket() {
                  <div className="mt-4 flex items-center justify-center gap-2 text-amber-500/80 text-sm font-medium">
                     <div className="flex h-16 w-28 sm:h-12 sm:w-42 items-center justify-center rounded-lg mt-1">            
                       <img src="../logo_tf_white.png" alt="" />
-                    </div>                   
+                    </div>                  
                  </div>
               </div>
            </div>

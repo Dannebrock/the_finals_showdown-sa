@@ -22,6 +22,11 @@ function SetupFinalComponent() {
     }
   }
 
+  const themeColors = {
+  final: "bg-green-600 border-green-500 shadow-[0_0_20px_rgba(22,163,74,0.6)] ring-2 ring-green-400",
+  default: "bg-zinc-800/50 border-zinc-700/50 hover:bg-zinc-800 transition-colors"
+}
+
   const handleRemoveTeam = (teamId: string) => {
     setSelectedTeams(selectedTeams.filter((id) => id !== teamId))
   }
@@ -219,6 +224,7 @@ export function FinalManagement() {
                              type="number" 
                              className="pl-6 bg-zinc-950 border-zinc-700 text-white font-mono"
                              placeholder="0"
+                             value={cashoutInputs[ft.teamId] || ''} // <-- OBRIGA A LER DO STATE ZERADO
                              onChange={(e) => setCashoutInputs({...cashoutInputs, [ft.teamId]: Number(e.target.value)})}
                           />
                        </div>
@@ -227,7 +233,10 @@ export function FinalManagement() {
               })}
               
               <Button 
-                 onClick={() => submitCashoutResults(activeRound.id, cashoutInputs)}
+                 onClick={() => {
+                    submitCashoutResults(activeRound.id, cashoutInputs)
+                    setCashoutInputs({}) // <-- LIMPA O STATE
+                 }}
                  className="w-full bg-amber-500 text-black hover:bg-amber-600 font-bold mt-6 h-12 text-lg"
               >
                  Confirmar Cashout & Definir Duelo
@@ -248,11 +257,11 @@ export function FinalManagement() {
                  <div className="flex flex-col items-center gap-4">
                     <div className="w-20 h-20 relative rounded-full overflow-hidden bg-black border-2 border-zinc-700">
                        {(() => {
-                          const t = teams.find(t => t.id === activeRound.results.team1Id)
+                          const t = teams.find(t => t.id === activeRound.results!.team1Id)
                           return t?.logo ? <Image src={t.logo} alt="" fill className="object-cover" /> : null
                        })()}
                     </div>
-                    <div className="font-bold text-xl text-white">{teams.find(t => t.id === activeRound.results.team1Id)?.name}</div>
+                    <div className="font-bold text-xl text-white">{teams.find(t => t.id === activeRound.results!.team1Id)?.name}</div>
                     
                     <div className="flex items-center gap-3 bg-zinc-800 rounded-lg p-2 border border-zinc-700">
                        <Button size="icon" variant="ghost" onClick={() => setBo3Score(s => ({...s, t1: Math.max(0, s.t1 - 1)}))}><Minus className="w-4 h-4"/></Button>
@@ -267,11 +276,11 @@ export function FinalManagement() {
                  <div className="flex flex-col items-center gap-4">
                     <div className="w-20 h-20 relative rounded-full overflow-hidden bg-black border-2 border-zinc-700">
                        {(() => {
-                          const t = teams.find(t => t.id === activeRound.results.team2Id)
+                          const t = teams.find(t => t.id === activeRound.results!.team2Id)
                           return t?.logo ? <Image src={t.logo} alt="" fill className="object-cover" /> : null
                        })()}
                     </div>
-                    <div className="font-bold text-xl text-white">{teams.find(t => t.id === activeRound.results.team2Id)?.name}</div>
+                    <div className="font-bold text-xl text-white">{teams.find(t => t.id === activeRound.results!.team2Id)?.name}</div>
                     
                     <div className="flex items-center gap-3 bg-zinc-800 rounded-lg p-2 border border-zinc-700">
                        <Button size="icon" variant="ghost" onClick={() => setBo3Score(s => ({...s, t2: Math.max(0, s.t2 - 1)}))}><Minus className="w-4 h-4"/></Button>
@@ -282,7 +291,10 @@ export function FinalManagement() {
               </div>
 
               <Button 
-                 onClick={() => submitBo3Results(activeRound.id, activeRound.results.team1Id, activeRound.results.team2Id, bo3Score.t1, bo3Score.t2)}
+                 onClick={() => {
+                     submitBo3Results(activeRound.id, activeRound.results!.team1Id, activeRound.results!.team2Id, bo3Score.t1, bo3Score.t2)
+                     setBo3Score({ t1: 0, t2: 0 }) // <-- LIMPA O PLACAR
+                 }}
                  // Bloqueia se o placar for inválido (md3 precisa que alguém ganhe 2 para acabar, ou pelo menos some algum ponto válido)
                  disabled={bo3Score.t1 === 0 && bo3Score.t2 === 0} 
                  className="mt-12 bg-amber-500 text-black hover:bg-amber-600 font-bold px-12 py-6 text-xl rounded-full shadow-[0_0_20px_rgba(245,158,11,0.4)]"
@@ -295,11 +307,11 @@ export function FinalManagement() {
         {/* CENÁRIO 4: Fim de jogo */}
         {finalMatch.completed && (
            <div className="text-center py-10 animate-in fade-in zoom-in duration-500">
-              <Crown className="w-24 h-24 text-amber-500 mx-auto mb-4 animate-bounce" />
-              <h3 className="text-4xl font-black text-white mb-2">TEMOS UM CAMPEÃO!</h3>
-              <p className="text-2xl text-amber-500 font-bold">
-                 {teams.find(t => t.id === finalMatch.winnerId)?.name}
-              </p>
+             <Crown className="w-24 h-24 text-amber-500 mx-auto mb-4 animate-bounce" />
+             <h3 className="text-4xl font-black text-white mb-2">TEMOS UM CAMPEÃO!</h3>
+             <p className="text-2xl text-amber-500 font-bold">
+                {teams.find(t => t.id === finalMatch.winnerId)?.name}
+             </p>
            </div>
         )}
       </div>

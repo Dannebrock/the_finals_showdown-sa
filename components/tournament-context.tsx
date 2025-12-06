@@ -25,30 +25,25 @@ interface TournamentContextType {
   updateFinalPoints: (teamId: string, points: number) => Promise<void>
   startNewRound: (finalId: string) => Promise<void>
   submitCashoutResults: (roundId: string, cashoutData: Record<string, number>) => Promise<void>
-  // ATUALIZADO: Recebe placar exato
   submitBo3Results: (roundId: string, team1Id: string, team2Id: string, score1: number, score2: number) => Promise<void>
 }
 
 const TournamentContext = createContext<TournamentContextType | undefined>(undefined)
 
-// ... (PROGRESSION_MAP e outras partes do arquivo continuam iguais) ...
-// Vou pocar apenas as partes que mudam para não ficar gigante, 
-// mas o contexto abaixo é o provider completo.
-
 // --- MAPA DE PROGRESSÃO ---
 const PROGRESSION_MAP: Record<string, { upperWinner: string; upperLoser: string; lowerWinner?: string }> = {
-  G1: { upperWinner: "G9", upperLoser: "G5" },
-  G2: { upperWinner: "G9", upperLoser: "G5" },
-  G3: { upperWinner: "G10", upperLoser: "G6" },
-  G4: { upperWinner: "G10", upperLoser: "G6" },
-  G5: { upperWinner: "G9", upperLoser: "G7" },
-  G6: { upperWinner: "G10", upperLoser: "G7" },
+  G1: { upperWinner: "G9", upperLoser: "G5", lowerWinner: "G5" },
+  G2: { upperWinner: "G9", upperLoser: "G5", lowerWinner: "G5" },
+  G3: { upperWinner: "G10", upperLoser: "G6", lowerWinner: "G6" },
+  G4: { upperWinner: "G10", upperLoser: "G6", lowerWinner: "G6" },
+  G5: { upperWinner: "G9", upperLoser: "G7", lowerWinner: "G7" },
+  G6: { upperWinner: "G10", upperLoser: "G7", lowerWinner: "G7" },
   G7: { upperWinner: "G9", upperLoser: "G8", lowerWinner: "G8" },
   G8: { upperWinner: "G10", upperLoser: "ELIMINATED" },
-  G9: { upperWinner: "G13", upperLoser: "G11" },
-  G10: { upperWinner: "G13", upperLoser: "G11" },
-  G11: { upperWinner: "G13", upperLoser: "G12" },
-  G12: { upperWinner: "G13", upperLoser: "ELIMINATED" }
+  G9: { upperWinner: "G13", upperLoser: "G11", lowerWinner: "G11" },
+  G10: { upperWinner: "G13", upperLoser: "G11", lowerWinner: "G11" },
+  G11: { upperWinner: "G13", upperLoser: "G12", lowerWinner: "G12" },
+  G12: { upperWinner: "G13", upperLoser: "ELIMINATED", lowerWinner: "ELIMINATED" }
 }
 
 export function TournamentProvider({ children }: { children: React.ReactNode }) {
@@ -58,11 +53,50 @@ export function TournamentProvider({ children }: { children: React.ReactNode }) 
     teams: [], groups: [], bo3Matches: [], finalMatch: null, currentDay: 1,
   })
 
-  // ... (fetchData e actions padrão continuam iguais) ...
-  // Vou focar nas funções da FINAL que mudaram:
+  // --- FUNÇÃO RESTAURADA: AUTO-CORREÇÃO (SYNC) ---
+  // Essa função garante que a tabela 'final_teams' seja preenchida com quem está no G13
+  const repairFinalTeams = async (groupsData: any[], finalId: string) => {
+    // Procura pelo Grupo 13 (pode ser maiúsculo ou minúsculo)
+    const g13 = groupsData.find(g => g.id === 'G13' || g.id === 'g13' || g.name === 'G13');
+    
+    if (!g13 || !g13.group_teams) return;
+
+    // Pega IDs dos times que estão no G13 fisicamente
+    const teamsInG13 = g13.group_teams.map((gt: any) => gt.team_id);
+    
+    // Busca times que já estão na tabela da Final
+    const { data: currentFinalTeams } = await supabase.from("final_teams").select("team_id").eq("final_id", finalId);
+    const existingIds = currentFinalTeams?.map((ft: any) => ft.team_id) || [];
+
+    // Encontra quem falta
+    const missingTeams = teamsInG13.filter((tid: string) => !existingIds.includes(tid));
+
+    if (missingTeams.length > 0) {
+      console.log("🛠️ Auto-corrigindo times da Final:", missingTeams);
+      const inserts = missingTeams.map((tid: string) => ({
+        final_id: finalId,
+        team_id: tid,
+        points: 0
+      }));
+      await supabase.from("final_teams").insert(inserts);
+    }
+  }
+
+  // --- FUNÇÃO RESTAURADA: SYNC MANUAL ---
+  const syncTeamToFinalTable = async (teamId: string) => {
+    let { data: final } = await supabase.from("final_match").select("id").single()
+    if (!final) {
+        const { data: newFinal } = await supabase.from("final_match").insert({ completed: false }).select("id").single()
+        final = newFinal
+    }
+    if (!final) return
+    const { data: existing } = await supabase.from("final_teams").select("*").match({ final_id: final.id, team_id: teamId }).single()
+    if (!existing) {
+        await supabase.from("final_teams").insert({ final_id: final.id, team_id: teamId, points: 0 })
+    }
+  }
 
   const fetchData = useCallback(async () => {
-    // ... (mesmo fetch de antes)
     try {
       setLoading(true)
       const { data: teamsData } = await supabase.from("teams").select("*").order("name")
@@ -73,10 +107,20 @@ export function TournamentProvider({ children }: { children: React.ReactNode }) 
         .select(`*, final_teams(*), final_rounds(*)`)
         .single()
 
+      // --- LÓGICA DE RECUPERAÇÃO ---
+      // 1. Se não existir Final, cria uma.
       if (!finalData) {
          const { data: newFinal } = await supabase.from("final_match").insert({ completed: false }).select().single()
          finalData = newFinal
       }
+
+      // 2. Tenta reparar os times (Copiar do G13 para a Final se estiver faltando)
+      if (finalData && groupsData) {
+         await repairFinalTeams(groupsData, finalData.id);
+      }
+
+      // Removemos aquela lógica que deletava a final se estivesse vazia, 
+      // pois agora o repairFinalTeams vai tentar preenchê-la.
 
       const formattedTeams: Team[] = (teamsData || []).map(t => ({ id: t.id, name: t.name, logo: t.logo_url }))
       const formattedGroups: Group[] = (groupsData || []).map(g => ({
@@ -106,17 +150,25 @@ export function TournamentProvider({ children }: { children: React.ReactNode }) 
 
   useEffect(() => { fetchData() }, [fetchData])
 
-  // ... (Outros helpers: getTeamById, addTeam, deleteTeam, moveTeam, etc) ...
   const getTeamById = (id: string) => state.teams.find((t) => t.id === id)
   const addTeam = async (team: { name: string; logo: string | null }) => { await supabase.from("teams").insert({ name: team.name, logo_url: team.logo }); fetchData() }
   const deleteTeam = async (teamId: string) => { await supabase.from("teams").delete().eq("id", teamId); fetchData() }
+  
   const addTeamToGroup = async (groupId: string, teamId: string, position: number) => {
+    // 1. Adiciona ao grupo normal
     const { data: existing } = await supabase.from("group_teams").select("*").match({ group_id: groupId, team_id: teamId }).single();
     if (!existing) await supabase.from("group_teams").insert({ group_id: groupId, team_id: teamId, position: 0, cashout: 0, status: 'playing' });
+    
+    // 2. RESTAURADO: Se for G13, sincroniza com Final automaticamente
     const group = state.groups.find(g => g.id === groupId)
+    if (group?.name === 'G13' || groupId.toUpperCase() === 'G13') {
+        await syncTeamToFinalTable(teamId)
+    }
+
     if (group?.type === 'bo3') setTimeout(() => checkAndCreateBo3ForGroup(groupId), 500)
     fetchData()
   }
+
   const removeTeamFromGroup = async (groupId: string, teamId: string) => { await supabase.from("group_teams").delete().match({ group_id: groupId, team_id: teamId }); fetchData() }
   const updateTeamCashout = async (groupId: string, teamId: string, cashout: number) => { await supabase.from("group_teams").update({ cashout }).match({ group_id: groupId, team_id: teamId }); fetchData() }
   const updateTeamStatus = async (groupId: string, teamId: string, status: string) => { await supabase.from("group_teams").update({ status }).match({ group_id: groupId, team_id: teamId }); fetchData() }
@@ -140,18 +192,8 @@ export function TournamentProvider({ children }: { children: React.ReactNode }) 
     if (existingMatches.length > 0) { await updateGroup(groupId, { locked: true }); return; }
     const sortedTeams = [...group.teams].sort((a, b) => b.cashout - a.cashout)
     if (sortedTeams.length < 4) { alert("Precisa de 4 times para fechar o grupo."); return }
+
     await updateGroup(groupId, { locked: true })
-    if (group.name === 'G7') {
-        const g8 = state.groups.find(g => g.name === 'G8')
-        if (g8) {
-            for (const team of sortedTeams) await addTeamToGroup(g8.id, team.teamId, 0)
-            await supabase.from("bo3_matches").insert([
-                { phase: "LAST CHANCE", day: 1, source_group: g8.id, match_order: 1, team1_id: sortedTeams[0].teamId, team2_id: sortedTeams[1].teamId },
-                { phase: "LAST CHANCE", day: 1, source_group: g8.id, match_order: 2, team1_id: sortedTeams[2].teamId, team2_id: sortedTeams[3].teamId }
-            ])
-            fetchData(); return
-        }
-    }
     await supabase.from("bo3_matches").insert([
       { phase: group.phase, day: group.day, team1_id: sortedTeams[0].teamId, team2_id: sortedTeams[1].teamId, source_group: groupId, match_order: 1 },
       { phase: group.phase, day: group.day, team1_id: sortedTeams[2].teamId, team2_id: sortedTeams[3].teamId, source_group: groupId, match_order: 2 }
@@ -241,7 +283,6 @@ export function TournamentProvider({ children }: { children: React.ReactNode }) 
     fetchData()
   }
 
-  // --- NOVA FUNÇÃO DE SUBMIT BO3 COM PONTOS POR MAPA ---
   const submitBo3Results = async (roundId: string, team1Id: string, team2Id: string, score1: number, score2: number) => {
     const currentFinal = state.finalMatch!
     
