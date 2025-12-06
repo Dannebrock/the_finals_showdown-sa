@@ -10,8 +10,27 @@ export function PublicHeader() {
     <header className="bg-zinc-900 border-b border-zinc-800 py-3 md:py-4 px-4 md:px-6">
       <div className="container mx-auto">
         <div className="flex items-center justify-between">
-          <div className="flex h-16 w-28 sm:h-12 sm:w-42 items-center justify-center rounded-lg mt-1">            
-             <img src="../logo_tf_white.png" alt="" />
+          <div className="hidden sm:flex h-16 w-28 sm:h-12 sm:w-42 items-center justify-center rounded-lg mt-1">
+            <img src="/logo_tf_white.png" alt="" />
+          </div>
+
+          <div className="sm:hidden flex h-16 w-36 sm:h-12 sm:w-42 items-center justify-center rounded-lg mt-1">            
+             <img src="../logo_tf_white_mobile.png" alt="" />
+          </div>
+          
+
+          <div className="flex  gap-2 sm:gap-3 flex-wrap">
+          <span className="hidden sm:inline text-[9px] sm:text-xs font-bold text-zinc-500 uppercase tracking-widest whitespace-nowrap">
+            Sponsors:
+          </span>
+         
+
+          {/* Imagem desktop */}
+          <img
+            className="hidden sm:block h-6 w-110 "
+            src="../logos_sponsors_white.png"
+            alt="Sponsors Desktop"
+          />
           </div>
 
           <a
@@ -23,6 +42,8 @@ export function PublicHeader() {
               <Twitch className="h-5 w-5" />
               Twitch
             </a>
+
+            
 
           {/* Desktop menu */}
           <div className="hidden md:flex items-center gap-4">
