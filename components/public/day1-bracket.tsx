@@ -19,8 +19,8 @@ export function Day1Bracket() {
 
   const winnersGroups = state.groups.filter((g) => g.day === 1 && g.phase === "WINNERS TOP 16")
   const eliminationGroups = state.groups.filter((g) => g.day === 1 && g.phase === "ELIMINATION ROUND")
-  const g7 = state.groups.find((g) => g.id === "g7")
-  const g8 = state.groups.find((g) => g.id === "g8")
+  const g7 = state.groups.find((g) => g.id === "G7")
+  const g8 = state.groups.find((g) => g.id === "G8")
 
   return (
     <div className="space-y-8 md:space-y-12">
