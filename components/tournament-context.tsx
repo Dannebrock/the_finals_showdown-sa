@@ -188,16 +188,58 @@ export function TournamentProvider({ children }: { children: React.ReactNode }) 
   const lockGroupAndCreateBo3 = async (groupId: string) => {
     const group = state.groups.find(g => g.id === groupId)
     if (!group) return
+
+    // 1. SEGURANÇA: Verifica se já existem partidas (evita duplicação e erro 500)
     const existingMatches = state.bo3Matches.filter(m => m.sourceGroupId === groupId);
-    if (existingMatches.length > 0) { await updateGroup(groupId, { locked: true }); return; }
+    if (existingMatches.length > 0) { 
+        await updateGroup(groupId, { locked: true }); 
+        return; 
+    }
+
+    // 2. Ordena os times por Cashout
     const sortedTeams = [...group.teams].sort((a, b) => b.cashout - a.cashout)
     if (sortedTeams.length < 4) { alert("Precisa de 4 times para fechar o grupo."); return }
 
     await updateGroup(groupId, { locked: true })
+
+    // --- NOVA REGRA: SE FOR G7, MANDA PRO G8 ---
+    if (group.name === 'G7') {
+        const g8 = state.groups.find(g => g.name === 'G8')
+        if (g8) {
+            // Move os times para o G8 (só visualmente no banco)
+            for (const team of sortedTeams) await addTeamToGroup(g8.id, team.teamId, 0)
+            
+            // CRIA AS PARTIDAS VINCULADAS AO G8
+            await supabase.from("bo3_matches").insert([
+                { 
+                    phase: "LAST CHANCE", 
+                    day: 1, 
+                    source_group: g8.id, // <--- O PULO DO GATO: Vincula ao G8
+                    match_order: 1, 
+                    team1_id: sortedTeams[0].teamId, 
+                    team2_id: sortedTeams[1].teamId 
+                },
+                { 
+                    phase: "LAST CHANCE", 
+                    day: 1, 
+                    source_group: g8.id, // <--- O PULO DO GATO: Vincula ao G8
+                    match_order: 2, 
+                    team1_id: sortedTeams[2].teamId, 
+                    team2_id: sortedTeams[3].teamId 
+                }
+            ])
+            fetchData(); 
+            return
+        }
+    }
+
+    // --- REGRA PADRÃO (G1, G2, G3, G4, G5, G6) ---
+    // Cria partidas vinculadas ao próprio grupo
     await supabase.from("bo3_matches").insert([
       { phase: group.phase, day: group.day, team1_id: sortedTeams[0].teamId, team2_id: sortedTeams[1].teamId, source_group: groupId, match_order: 1 },
       { phase: group.phase, day: group.day, team1_id: sortedTeams[2].teamId, team2_id: sortedTeams[3].teamId, source_group: groupId, match_order: 2 }
     ])
+    
     fetchData()
   }
 
